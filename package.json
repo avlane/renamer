@@ -1,0 +1,13 @@
+{
+  "name": "renamer",
+  "version": "0.1.0",
+  "description": "Bulk file renamer",
+  "type": "module",
+  "bin": {
+    "renamer": "bin/renamer.js"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
