@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
-import path from 'node:path';
+import { buildPlan } from '../lib/plan.js';
 
 const [find, replacement, ...files] = process.argv.slice(2);
 if (find === undefined || replacement === undefined || files.length === 0) {
@@ -8,11 +8,7 @@ if (find === undefined || replacement === undefined || files.length === 0) {
   process.exit(1);
 }
 
-for (const file of files) {
-  const dir = path.dirname(file);
-  const base = path.basename(file);
-  const renamed = base.replaceAll(find, replacement);
-  if (renamed === base) continue;
-  fs.renameSync(file, path.join(dir, renamed));
-  console.log(`${file} -> ${path.join(dir, renamed)}`);
+for (const step of buildPlan(files, { find, replacement }).filter(s => s.changed)) {
+  fs.renameSync(step.from, step.to);
+  console.log(`${step.from} -> ${step.to}`);
 }

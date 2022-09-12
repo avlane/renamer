@@ -6,6 +6,9 @@
   "bin": {
     "renamer": "bin/renamer.js"
   },
+  "scripts": {
+    "test": "node --test"
+  },
   "license": "MIT",
   "engines": {
     "node": ">=18"
