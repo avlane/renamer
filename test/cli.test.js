@@ -43,3 +43,41 @@ test('cli usage errors', () => {
   assert.equal(runCli(['', 'b', 'file']).code, 2);
   assert.match(runCli(['', 'b', 'file']).err, /cannot be empty/);
 });
+
+test('cli stops before renaming anything when a target already exists', () => {
+  const dir = makeDir({ 'x1.txt': '1', 'y.txt': '3' });
+  try {
+    const { code, err } = runCli(['x1', 'y', path.join(dir, 'x1.txt')]);
+    assert.equal(code, 1);
+    assert.match(err, /y\.txt already exists/);
+    assert.match(err, /nothing was renamed/);
+    assert.deepEqual(listDir(dir), ['x1.txt', 'y.txt']);
+  } finally {
+    removeDir(dir);
+  }
+});
+
+test('cli stops before renaming anything when two files would collide', () => {
+  const dir = makeDir({ 'AB.txt': '1', 'BA.txt': '2', 'other.txt': '3' });
+  try {
+    const files = ['AB.txt', 'BA.txt', 'other.txt'].map(name => path.join(dir, name));
+    const { code, err } = runCli(['A', '', ...files]);
+    assert.equal(code, 1);
+    assert.match(err, /would both be renamed to/);
+    assert.deepEqual(listDir(dir), ['AB.txt', 'BA.txt', 'other.txt']);
+  } finally {
+    removeDir(dir);
+  }
+});
+
+test('cli reports a missing file without renaming the others', () => {
+  const dir = makeDir({ 'a.txt': '1' });
+  try {
+    const { code, err } = runCli(['a', 'b', path.join(dir, 'a.txt'), path.join(dir, 'a-missing.txt')]);
+    assert.equal(code, 1);
+    assert.match(err, /a-missing\.txt: no such file/);
+    assert.deepEqual(listDir(dir), ['a.txt']);
+  } finally {
+    removeDir(dir);
+  }
+});
