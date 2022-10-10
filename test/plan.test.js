@@ -37,3 +37,39 @@ test('buildPlan needs something to find', () => {
   assert.throws(() => buildPlan(['a'], { find: '', replacement: 'x' }), /cannot be empty/);
   assert.throws(() => buildPlan(['a'], {}), /cannot be empty/);
 });
+
+test('buildPlan with a regular expression', () => {
+  const plan = buildPlan(['IMG_0042.JPG'], { find: '^IMG_0*(\\d+)', replacement: 'photo-$1', regex: true });
+  assert.equal(plan[0].to, 'photo-42.JPG');
+});
+
+test('buildPlan regular expressions replace every match by default', () => {
+  const plan = buildPlan(['a1b22c333'], { find: '\\d+', replacement: '#', regex: true });
+  assert.equal(plan[0].to, 'a#b#c#');
+});
+
+test('buildPlan --flags changes how the expression matches', () => {
+  const insensitive = buildPlan(['Report.TXT'], { find: 'report', replacement: 'summary', regex: true, flags: 'i' });
+  assert.equal(insensitive[0].to, 'summary.TXT');
+  const first = buildPlan(['a1a2a3'], { find: 'a', replacement: 'x', regex: true, flags: '' });
+  assert.equal(first[0].to, 'x1a2a3');
+});
+
+test('buildPlan named groups in the replacement', () => {
+  const plan = buildPlan(['2022-09-30_report.txt'], {
+    find: '^(?<y>\\d{4})-(?<m>\\d{2})-(?<d>\\d{2})_',
+    replacement: '$<d>.$<m>.$<y> ',
+    regex: true
+  });
+  assert.equal(plan[0].to, '30.09.2022 report.txt');
+});
+
+test('buildPlan anchors apply to the base name only', () => {
+  const plan = buildPlan(['dir/abc.txt'], { find: '^a', replacement: 'X', regex: true });
+  assert.equal(plan[0].to, 'dir/Xbc.txt');
+});
+
+test('buildPlan rejects bad regular expressions', () => {
+  assert.throws(() => buildPlan(['a'], { find: '(', replacement: '', regex: true }), SyntaxError);
+  assert.throws(() => buildPlan(['a'], { find: 'a', replacement: '', regex: true, flags: 'zz' }), SyntaxError);
+});

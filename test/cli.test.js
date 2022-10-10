@@ -81,3 +81,21 @@ test('cli reports a missing file without renaming the others', () => {
     removeDir(dir);
   }
 });
+
+test('cli --regex and --flags', () => {
+  const dir = makeDir({ 'IMG_0001.JPG': 'a', 'IMG_0002.jpg': 'b' });
+  try {
+    const { code } = runCli(['--regex', '--flags', 'i', '^img_0*(\\d+)\\.jpg$', 'photo-$1.jpeg',
+      path.join(dir, 'IMG_0001.JPG'), path.join(dir, 'IMG_0002.jpg')]);
+    assert.equal(code, 0);
+    assert.deepEqual(listDir(dir), ['photo-1.jpeg', 'photo-2.jpeg']);
+  } finally {
+    removeDir(dir);
+  }
+});
+
+test('cli reports an invalid regular expression', () => {
+  const { code, err } = runCli(['-e', '(', 'x', 'file']);
+  assert.equal(code, 2);
+  assert.match(err, /^renamer: Invalid regular expression/);
+});
