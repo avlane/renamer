@@ -33,9 +33,20 @@ test('buildPlan special characters in the text are literal', () => {
   assert.equal(plan[0].to, 'a.txt');
 });
 
-test('buildPlan needs something to find', () => {
+test('buildPlan needs something to find or a case mode', () => {
   assert.throws(() => buildPlan(['a'], { find: '', replacement: 'x' }), /cannot be empty/);
-  assert.throws(() => buildPlan(['a'], {}), /cannot be empty/);
+  assert.throws(() => buildPlan(['a'], {}), /nothing to do/);
+});
+
+test('buildPlan case modes', () => {
+  assert.equal(buildPlan(['dir/My File.JPG'], { caseMode: 'lower' })[0].to, 'dir/my file.jpg');
+  assert.equal(buildPlan(['My Holiday (2022)!.JPG'], { caseMode: 'slug' })[0].to, 'my-holiday-2022.jpg');
+  assert.equal(buildPlan(['a.txt'], { caseMode: 'lower' })[0].changed, false);
+});
+
+test('buildPlan searches first, then changes the case', () => {
+  const plan = buildPlan(['IMG_01.JPG'], { find: 'IMG_', replacement: 'Holiday ', caseMode: 'title' });
+  assert.equal(plan[0].to, 'Holiday 01.JPG');
 });
 
 test('buildPlan with a regular expression', () => {
