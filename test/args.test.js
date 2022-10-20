@@ -17,6 +17,11 @@ test('readArgs find, with and regex options', () => {
   assert.deepEqual(opts.files, ['x', 'y']);
 });
 
+test('readArgs template', () => {
+  assert.equal(readArgs(['-t', '{n}{ext}', 'a']).template, '{n}{ext}');
+  assert.equal(readArgs(['--template', '{name}', 'a']).template, '{name}');
+});
+
 test('readArgs case modes', () => {
   assert.equal(readArgs(['--lower', 'a']).caseMode, 'lower');
   assert.equal(readArgs(['--slug', 'a']).caseMode, 'slug');

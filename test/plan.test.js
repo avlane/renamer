@@ -44,6 +44,20 @@ test('buildPlan case modes', () => {
   assert.equal(buildPlan(['a.txt'], { caseMode: 'lower' })[0].changed, false);
 });
 
+test('buildPlan with a template', () => {
+  const plan = buildPlan(['/x/Trip/a.jpg', '/x/Trip/b.JPG', '/x/Trip/c.png'], { template: '{parent|lower}-{n:3}{ext|lower}' });
+  assert.deepEqual(plan.map(step => step.to), ['/x/Trip/trip-001.jpg', '/x/Trip/trip-002.jpg', '/x/Trip/trip-003.png']);
+});
+
+test('buildPlan template and find cannot be combined', () => {
+  assert.throws(() => buildPlan(['a'], { template: '{name}', find: 'a' }), /either --template or --find/);
+});
+
+test('buildPlan a template can still be followed by a case mode', () => {
+  const plan = buildPlan(['a.TXT'], { template: 'Note {n}{ext}', caseMode: 'upper' });
+  assert.equal(plan[0].to, 'NOTE 1.TXT');
+});
+
 test('buildPlan searches first, then changes the case', () => {
   const plan = buildPlan(['IMG_01.JPG'], { find: 'IMG_', replacement: 'Holiday ', caseMode: 'title' });
   assert.equal(plan[0].to, 'Holiday 01.JPG');

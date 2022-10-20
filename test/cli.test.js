@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 import { makeDir, removeDir, listDir, runCli } from './helpers.js';
 
@@ -113,4 +114,41 @@ test('cli case modes', () => {
   } finally {
     removeDir(dir);
   }
+});
+
+test('cli --template numbers the files', () => {
+  const dir = makeDir({ 'b.jpg': 'b', 'a.jpg': 'a', 'c.jpg': 'c' });
+  try {
+    const { code } = runCli(['-t', 'photo-{n:2}{ext}', path.join(dir, 'a.jpg'), path.join(dir, 'b.jpg'), path.join(dir, 'c.jpg')]);
+    assert.equal(code, 0);
+    assert.deepEqual(listDir(dir), ['photo-01.jpg', 'photo-02.jpg', 'photo-03.jpg']);
+    const a = makeDir({ 'x.txt': 'first' });
+    try {
+      assert.equal(runCli(['-t', '{n}.txt', path.join(a, 'x.txt')]).code, 0);
+      assert.deepEqual(listDir(a), ['1.txt']);
+    } finally {
+      removeDir(a);
+    }
+  } finally {
+    removeDir(dir);
+  }
+});
+
+test('cli can swap two names through a template', () => {
+  const dir = makeDir({ '1.txt': 'one', '2.txt': 'two' });
+  try {
+    const { code } = runCli(['-t', '{n}{ext}', path.join(dir, '2.txt'), path.join(dir, '1.txt')]);
+    assert.equal(code, 0);
+    assert.deepEqual(listDir(dir), ['1.txt', '2.txt']);
+    assert.equal(fs.readFileSync(path.join(dir, '1.txt'), 'utf8'), 'two');
+    assert.equal(fs.readFileSync(path.join(dir, '2.txt'), 'utf8'), 'one');
+  } finally {
+    removeDir(dir);
+  }
+});
+
+test('cli reports a bad template', () => {
+  const { code, err } = runCli(['-t', '{oops}', 'file']);
+  assert.equal(code, 2);
+  assert.match(err, /unknown template field \{oops\}/);
 });
