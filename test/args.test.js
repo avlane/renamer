@@ -22,6 +22,14 @@ test('readArgs template', () => {
   assert.equal(readArgs(['--template', '{name}', 'a']).template, '{name}');
 });
 
+test('readArgs start and step', () => {
+  const opts = readArgs(['--start', '100', '--step', '-5', 'a']);
+  assert.deepEqual([opts.start, opts.step], [100, -5]);
+  assert.equal(readArgs(['a']).start, undefined);
+  assert.throws(() => readArgs(['--start', 'x']), /--start needs a whole number/);
+  assert.throws(() => readArgs(['--step', '1.5']), /--step needs a whole number/);
+});
+
 test('readArgs case modes', () => {
   assert.equal(readArgs(['--lower', 'a']).caseMode, 'lower');
   assert.equal(readArgs(['--slug', 'a']).caseMode, 'slug');

@@ -49,6 +49,13 @@ test('buildPlan with a template', () => {
   assert.deepEqual(plan.map(step => step.to), ['/x/Trip/trip-001.jpg', '/x/Trip/trip-002.jpg', '/x/Trip/trip-003.png']);
 });
 
+test('buildPlan counter start and step', () => {
+  const plan = buildPlan(['a', 'b', 'c'], { template: '{n:3}', start: 10, step: 10 });
+  assert.deepEqual(plan.map(step => step.to), ['010', '020', '030']);
+  const down = buildPlan(['a', 'b'], { template: '{n}', start: 5, step: -1 });
+  assert.deepEqual(down.map(step => step.to), ['5', '4']);
+});
+
 test('buildPlan template and find cannot be combined', () => {
   assert.throws(() => buildPlan(['a'], { template: '{name}', find: 'a' }), /either --template or --find/);
 });
