@@ -23,7 +23,7 @@ test('readArgs template', () => {
 });
 
 test('readArgs start and step', () => {
-  const opts = readArgs(['--start', '100', '--step', '-5', 'a']);
+  const opts = readArgs(['--start', '100', '--step=-5', 'a']);
   assert.deepEqual([opts.start, opts.step], [100, -5]);
   assert.equal(readArgs(['a']).start, undefined);
   assert.throws(() => readArgs(['--start', 'x']), /--start needs a whole number/);
@@ -38,6 +38,21 @@ test('readArgs case modes', () => {
 
 test('readArgs errors', () => {
   assert.throws(() => readArgs(['--nope']), UsageError);
-  assert.throws(() => readArgs(['-f']), /-f needs a value/);
+  assert.throws(() => readArgs(['-f']), UsageError);
+  assert.throws(() => readArgs(['--find']), UsageError);
   assert.equal(readArgs(['--help']).help, true);
+});
+
+test('readArgs combined short flags and an empty value', () => {
+  const opts = readArgs(['-ne', '-f', '', 'a']);
+  assert.deepEqual([opts.dryRun, opts.regex, opts.find], [true, true, '']);
+});
+
+test('readArgs everything after -- is a file', () => {
+  assert.deepEqual(readArgs(['--lower', '--', '-odd.TXT']).files, ['-odd.TXT']);
+});
+
+test('readArgs --option=value', () => {
+  const opts = readArgs(['--find=a', '--with=b', '--template={n}']);
+  assert.deepEqual([opts.find, opts.replacement, opts.template], ['a', 'b', '{n}']);
 });
