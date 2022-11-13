@@ -152,3 +152,26 @@ test('cli reports a bad template', () => {
   assert.equal(code, 2);
   assert.match(err, /unknown template field \{oops\}/);
 });
+
+test('cli -R renames the files in folders, filtered by globs', () => {
+  const dir = makeDir({ 'a.JPG': '', 'sub/b.JPG': '', 'sub/c.txt': '', 'skip/d.JPG': '' });
+  try {
+    const { code } = runCli(['-R', '--include', '*.JPG', '--exclude', 'skip/**', '-f', '.JPG', '-w', '.jpeg', dir]);
+    assert.equal(code, 0);
+    assert.deepEqual(listDir(dir), ['a.jpeg', 'skip/d.JPG', 'sub/b.jpeg', 'sub/c.txt']);
+  } finally {
+    removeDir(dir);
+  }
+});
+
+test('cli explains that a folder needs -R', () => {
+  const dir = makeDir({ 'a.txt': '' });
+  try {
+    const { code, err } = runCli(['-f', 'a', '-w', 'b', dir]);
+    assert.equal(code, 2);
+    assert.match(err, /is a folder \(use -R/);
+    assert.deepEqual(listDir(dir), ['a.txt']);
+  } finally {
+    removeDir(dir);
+  }
+});

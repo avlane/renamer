@@ -17,6 +17,13 @@ test('readArgs find, with and regex options', () => {
   assert.deepEqual(opts.files, ['x', 'y']);
 });
 
+test('readArgs recursion and globs', () => {
+  const opts = readArgs(['-R', '--include', '*.jpg', '--include=*.png', '--exclude', 'tmp/**', 'dir']);
+  assert.deepEqual([opts.recursive, opts.include, opts.exclude, opts.files], [true, ['*.jpg', '*.png'], ['tmp/**'], ['dir']]);
+  const plain = readArgs(['a']);
+  assert.deepEqual([plain.recursive, plain.include, plain.exclude], [false, [], []]);
+});
+
 test('readArgs template', () => {
   assert.equal(readArgs(['-t', '{n}{ext}', 'a']).template, '{n}{ext}');
   assert.equal(readArgs(['--template', '{name}', 'a']).template, '{name}');
