@@ -30,6 +30,10 @@ export function listDir(dir, prefix = '') {
   return out.sort();
 }
 
+// Runs that do not name a working folder keep their undo log here.
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'renamer-cwd-'));
+process.on('exit', () => fs.rmSync(SCRATCH, { recursive: true, force: true }));
+
 class Sink extends Writable {
   constructor() {
     super();
@@ -46,6 +50,6 @@ class Sink extends Writable {
 export function runCli(args, extra = {}) {
   const stdout = new Sink();
   const stderr = new Sink();
-  const code = run(args, { stdout, stderr, ...extra });
+  const code = run(args, { stdout, stderr, cwd: SCRATCH, ...extra });
   return { code, out: stdout.text, err: stderr.text };
 }

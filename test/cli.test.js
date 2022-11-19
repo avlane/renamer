@@ -175,3 +175,70 @@ test('cli explains that a folder needs -R', () => {
     removeDir(dir);
   }
 });
+
+test('cli writes an undo log and --undo restores the names', () => {
+  const dir = makeDir({ 'a.txt': 'A', 'b.txt': 'B' });
+  const work = makeDir();
+  try {
+    const files = [path.join(dir, 'a.txt'), path.join(dir, 'b.txt')];
+    assert.equal(runCli(['-f', '.txt', '-w', '.md', ...files], { cwd: work, now: () => new Date('2022-11-19T12:00:00Z') }).code, 0);
+    assert.deepEqual(listDir(dir), ['a.md', 'b.md']);
+    assert.deepEqual(listDir(work), ['.renamer-undo.json']);
+
+    const dry = runCli(['--undo', '--dry-run'], { cwd: work });
+    assert.equal(dry.code, 0);
+    assert.match(dry.out, /^\(dry run\) .*a\.md -> .*a\.txt\n/);
+    assert.deepEqual(listDir(dir), ['a.md', 'b.md']);
+
+    const undone = runCli(['--undo'], { cwd: work });
+    assert.equal(undone.code, 0);
+    assert.deepEqual(listDir(dir), ['a.txt', 'b.txt']);
+    assert.deepEqual(listDir(work), []);
+    assert.equal(fs.readFileSync(files[0], 'utf8'), 'A');
+  } finally {
+    removeDir(dir);
+    removeDir(work);
+  }
+});
+
+test('cli --undo with nothing to undo', () => {
+  const work = makeDir();
+  try {
+    const { code, err } = runCli(['--undo'], { cwd: work });
+    assert.equal(code, 1);
+    assert.match(err, /nothing to undo/);
+  } finally {
+    removeDir(work);
+  }
+});
+
+test('cli --undo refuses when a name has been taken in the meantime', () => {
+  const dir = makeDir({ 'a.txt': 'A' });
+  const work = makeDir();
+  try {
+    runCli(['-f', 'a', '-w', 'b', path.join(dir, 'a.txt')], { cwd: work });
+    fs.writeFileSync(path.join(dir, 'a.txt'), 'someone else');
+    const { code, err } = runCli(['--undo'], { cwd: work });
+    assert.equal(code, 1);
+    assert.match(err, /already exists/);
+    assert.match(err, /nothing was undone/);
+    assert.deepEqual(listDir(dir), ['a.txt', 'b.txt']);
+  } finally {
+    removeDir(dir);
+    removeDir(work);
+  }
+});
+
+test('cli a dry run or a failed run writes no undo log', () => {
+  const dir = makeDir({ 'a.txt': 'A', 'b.txt': 'B' });
+  const work = makeDir();
+  try {
+    runCli(['-n', '-f', 'a', '-w', 'z', path.join(dir, 'a.txt')], { cwd: work });
+    runCli(['-f', 'a', '-w', 'b', path.join(dir, 'a.txt')], { cwd: work });
+    runCli(['-f', 'q', '-w', 'z', path.join(dir, 'a.txt')], { cwd: work });
+    assert.deepEqual(listDir(work), []);
+  } finally {
+    removeDir(dir);
+    removeDir(work);
+  }
+});
