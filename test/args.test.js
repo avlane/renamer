@@ -24,6 +24,12 @@ test('readArgs recursion and globs', () => {
   assert.deepEqual([plain.recursive, plain.include, plain.exclude], [false, [], []]);
 });
 
+test('readArgs --ext, including an empty one', () => {
+  assert.equal(readArgs(['--ext', 'md', 'a']).ext, 'md');
+  assert.equal(readArgs(['--ext', '', 'a']).ext, '');
+  assert.equal(readArgs(['a']).ext, undefined);
+});
+
 test('readArgs template', () => {
   assert.equal(readArgs(['-t', '{n}{ext}', 'a']).template, '{n}{ext}');
   assert.equal(readArgs(['--template', '{name}', 'a']).template, '{name}');

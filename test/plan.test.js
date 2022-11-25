@@ -105,3 +105,20 @@ test('buildPlan rejects bad regular expressions', () => {
   assert.throws(() => buildPlan(['a'], { find: '(', replacement: '', regex: true }), SyntaxError);
   assert.throws(() => buildPlan(['a'], { find: 'a', replacement: '', regex: true, flags: 'zz' }), SyntaxError);
 });
+
+test('buildPlan --ext', () => {
+  const plan = buildPlan(['a.JPG', 'b.tar.gz', 'c', 'd.txt'], { ext: 'md' });
+  assert.deepEqual(plan.map(step => step.to), ['a.md', 'b.md', 'c.md', 'd.md']);
+  assert.equal(buildPlan(['a.txt'], { ext: '.txt' })[0].changed, false);
+  assert.deepEqual(buildPlan(['a.txt', 'b.tar.gz'], { ext: '' }).map(step => step.to), ['a', 'b']);
+});
+
+test('buildPlan --ext comes after case changes and templates', () => {
+  assert.equal(buildPlan(['My File.TXT'], { caseMode: 'slug', ext: 'md' })[0].to, 'my-file.md');
+  assert.equal(buildPlan(['a.txt'], { template: 'copy-{name}{ext}', ext: 'bak' })[0].to, 'copy-a.bak');
+});
+
+test('buildPlan case modes treat .tar.gz as one extension', () => {
+  assert.equal(buildPlan(['Backup 2022.TAR.GZ'], { caseMode: 'lower' })[0].to, 'backup 2022.tar.gz');
+  assert.equal(buildPlan(['Backup 2022.tar.gz'], { caseMode: 'slug' })[0].to, 'backup-2022.tar.gz');
+});

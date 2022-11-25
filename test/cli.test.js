@@ -242,3 +242,14 @@ test('cli a dry run or a failed run writes no undo log', () => {
     removeDir(work);
   }
 });
+
+test('cli --ext renames the extension', () => {
+  const dir = makeDir({ 'a.jpeg': '', 'b.tar.gz': '' });
+  try {
+    assert.equal(runCli(['--ext', 'jpg', path.join(dir, 'a.jpeg')]).code, 0);
+    assert.equal(runCli(['--ext', '', path.join(dir, 'b.tar.gz')]).code, 0);
+    assert.deepEqual(listDir(dir), ['a.jpg', 'b']);
+  } finally {
+    removeDir(dir);
+  }
+});
