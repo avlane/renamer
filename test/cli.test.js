@@ -253,3 +253,21 @@ test('cli --ext renames the extension', () => {
     removeDir(dir);
   }
 });
+
+test('cli {mtime} with --utc', () => {
+  const dir = makeDir({ 'a.jpg': '' });
+  try {
+    fs.utimesSync(path.join(dir, 'a.jpg'), new Date(Date.UTC(2020, 1, 29, 12, 0, 0)), new Date(Date.UTC(2020, 1, 29, 12, 0, 0)));
+    const { code } = runCli(['--utc', '-t', '{mtime:YYYYMMDD}-{name}{ext}', path.join(dir, 'a.jpg')]);
+    assert.equal(code, 0);
+    assert.deepEqual(listDir(dir), ['20200229-a.jpg']);
+  } finally {
+    removeDir(dir);
+  }
+});
+
+test('cli {mtime} on a file that does not exist', () => {
+  const { code, err } = runCli(['-t', '{mtime}', '/definitely/not/here.jpg']);
+  assert.equal(code, 2);
+  assert.match(err, /cannot read the modification time of/);
+});

@@ -122,3 +122,22 @@ test('buildPlan case modes treat .tar.gz as one extension', () => {
   assert.equal(buildPlan(['Backup 2022.TAR.GZ'], { caseMode: 'lower' })[0].to, 'backup 2022.tar.gz');
   assert.equal(buildPlan(['Backup 2022.tar.gz'], { caseMode: 'slug' })[0].to, 'backup-2022.tar.gz');
 });
+
+test('buildPlan {mtime} reads the modification time only when the template asks for it', () => {
+  const stats = [];
+  const stat = file => {
+    stats.push(file);
+    return { mtime: new Date(Date.UTC(2021, 4, 6, 7, 8, 9)) };
+  };
+  const plan = buildPlan(['a.jpg'], { template: '{mtime:YYYY-MM-DD}_{name}{ext}', utc: true }, { stat });
+  assert.equal(plan[0].to, '2021-05-06_a.jpg');
+  buildPlan(['a.jpg'], { template: '{name}{ext}' }, { stat });
+  assert.deepEqual(stats, ['a.jpg']);
+});
+
+test('buildPlan {mtime} on a missing file is an error', () => {
+  const stat = () => {
+    throw Object.assign(new Error('boom'), { code: 'ENOENT' });
+  };
+  assert.throws(() => buildPlan(['gone.jpg'], { template: '{mtime}' }, { stat }), /cannot read the modification time of gone\.jpg \(ENOENT\)/);
+});
