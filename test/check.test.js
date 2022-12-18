@@ -39,3 +39,10 @@ test('checkPlan compares paths after resolving them', () => {
   const plan = [step('./a', './x'), step('a2', 'x')];
   assert.equal(checkPlan(plan, { exists: existing('./a', 'a2') }).length, 1);
 });
+
+test('checkPlan allows a case-only rename when both names are the same file', () => {
+  const plan = [step('report.txt', 'Report.txt')];
+  const exists = existing('report.txt', 'Report.txt');
+  assert.deepEqual(checkPlan(plan, { exists, sameFile: () => true }), []);
+  assert.deepEqual(checkPlan(plan, { exists, sameFile: () => false }), ['Report.txt already exists (needed for report.txt)']);
+});

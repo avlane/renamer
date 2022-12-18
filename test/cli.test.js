@@ -271,3 +271,18 @@ test('cli {mtime} on a file that does not exist', () => {
   assert.equal(code, 2);
   assert.match(err, /cannot read the modification time of/);
 });
+
+test('cli renames a file to a different case of its own name', () => {
+  const dir = makeDir({ 'report.txt': 'text', 'NOTES.TXT': 'notes' });
+  try {
+    const { code, err } = runCli(['--title', path.join(dir, 'report.txt')]);
+    assert.equal(err, '');
+    assert.equal(code, 0);
+    assert.deepEqual(listDir(dir), ['NOTES.TXT', 'Report.txt']);
+    assert.equal(runCli(['--lower', path.join(dir, 'NOTES.TXT')]).code, 0);
+    assert.deepEqual(listDir(dir), ['Report.txt', 'notes.txt']);
+    assert.equal(fs.readFileSync(path.join(dir, 'notes.txt'), 'utf8'), 'notes');
+  } finally {
+    removeDir(dir);
+  }
+});
