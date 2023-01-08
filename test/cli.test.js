@@ -286,3 +286,40 @@ test('cli renames a file to a different case of its own name', () => {
     removeDir(dir);
   }
 });
+
+test('cli --force replaces an existing file, says so, and --undo warns', () => {
+  const dir = makeDir({ 'a.txt': 'new', 'b.txt': 'old' });
+  const work = makeDir();
+  try {
+    const args = ['-f', 'a', '-w', 'b', path.join(dir, 'a.txt')];
+    assert.equal(runCli(args, { cwd: work }).code, 1);
+    const dry = runCli(['-n', '--force', ...args], { cwd: work });
+    assert.equal(dry.code, 0);
+    assert.match(dry.out, /\(replaces an existing file\)\n$/);
+    assert.deepEqual(listDir(work), []);
+
+    assert.equal(runCli(['--force', ...args], { cwd: work }).code, 0);
+    assert.deepEqual(listDir(dir), ['b.txt']);
+    assert.equal(fs.readFileSync(path.join(dir, 'b.txt'), 'utf8'), 'new');
+
+    const undone = runCli(['--undo'], { cwd: work });
+    assert.equal(undone.code, 0);
+    assert.match(undone.err, /note: 1 file\(s\) replaced by that run cannot be restored/);
+    assert.deepEqual(listDir(dir), ['a.txt']);
+  } finally {
+    removeDir(dir);
+    removeDir(work);
+  }
+});
+
+test('cli --force never replaces a folder', () => {
+  const dir = makeDir({ 'a.txt': 'x', 'b/inside.txt': 'y' });
+  try {
+    const { code, err } = runCli(['--force', '-f', 'a.txt', '-w', 'b', path.join(dir, 'a.txt')]);
+    assert.equal(code, 1);
+    assert.match(err, /is a folder; --force does not replace folders/);
+    assert.deepEqual(listDir(dir), ['a.txt', 'b/inside.txt']);
+  } finally {
+    removeDir(dir);
+  }
+});

@@ -30,6 +30,11 @@ test('readArgs --ext, including an empty one', () => {
   assert.equal(readArgs(['a']).ext, undefined);
 });
 
+test('readArgs --force', () => {
+  assert.equal(readArgs(['--force', 'a']).force, true);
+  assert.equal(readArgs(['a']).force, false);
+});
+
 test('readArgs template', () => {
   assert.equal(readArgs(['-t', '{n}{ext}', 'a']).template, '{n}{ext}');
   assert.equal(readArgs(['--template', '{name}', 'a']).template, '{name}');

@@ -17,6 +17,20 @@ test('writeLog and readLog round trip with absolute paths', () => {
   }
 });
 
+test('writeLog records overwritten files only when there are some', () => {
+  const dir = makeDir();
+  try {
+    writeLog(dir, [{ from: 'a', to: 'b' }]);
+    assert.equal(readLog(dir).overwritten, undefined);
+    writeLog(dir, [{ from: 'a', to: 'b' }], new Date(), ['/x/b']);
+    assert.deepEqual(readLog(dir).overwritten, ['/x/b']);
+    fs.writeFileSync(path.join(dir, LOG_NAME), '{"version": 1, "steps": [], "overwritten": [1]}');
+    assert.throws(() => readLog(dir), /unexpected contents/);
+  } finally {
+    removeDir(dir);
+  }
+});
+
 test('readLog without a log gives null', () => {
   const dir = makeDir();
   try {
