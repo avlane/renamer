@@ -30,6 +30,13 @@ test('readArgs --ext, including an empty one', () => {
   assert.equal(readArgs(['a']).ext, undefined);
 });
 
+test('readArgs --sort and --reverse', () => {
+  assert.equal(readArgs(['--sort', 'natural', 'a']).sort, 'natural');
+  assert.equal(readArgs(['a']).sort, undefined);
+  assert.equal(readArgs(['--reverse', 'a']).reverse, true);
+  assert.throws(() => readArgs(['--sort', 'random', 'a']), /--sort must be one of name, natural, mtime, size/);
+});
+
 test('readArgs --force', () => {
   assert.equal(readArgs(['--force', 'a']).force, true);
   assert.equal(readArgs(['a']).force, false);

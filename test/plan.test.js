@@ -141,3 +141,20 @@ test('buildPlan {mtime} on a missing file is an error', () => {
   };
   assert.throws(() => buildPlan(['gone.jpg'], { template: '{mtime}' }, { stat }), /cannot read the modification time of gone\.jpg \(ENOENT\)/);
 });
+
+test('buildPlan numbers files in the --sort order and returns the plan in that order', () => {
+  const plan = buildPlan(['img10.jpg', 'img2.jpg', 'img1.jpg'], { template: '{n:2}{ext}', sort: 'natural' });
+  assert.deepEqual(plan.map(step => [step.from, step.to]), [
+    ['img1.jpg', '01.jpg'],
+    ['img2.jpg', '02.jpg'],
+    ['img10.jpg', '03.jpg']
+  ]);
+  const reversed = buildPlan(['a', 'b', 'c'], { template: '{n}', sort: 'name', reverse: true });
+  assert.deepEqual(reversed.map(step => [step.from, step.to]), [['c', '1'], ['b', '2'], ['a', '3']]);
+});
+
+test('buildPlan --sort mtime needs to read the files', () => {
+  const stat = file => ({ mtimeMs: { a: 3, b: 1, c: 2 }[file] });
+  const plan = buildPlan(['a', 'b', 'c'], { template: '{n}', sort: 'mtime' }, { stat });
+  assert.deepEqual(plan.map(step => step.from), ['b', 'c', 'a']);
+});

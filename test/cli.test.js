@@ -323,3 +323,23 @@ test('cli --force never replaces a folder', () => {
     removeDir(dir);
   }
 });
+
+test('cli --sort natural numbers photo2 before photo10', () => {
+  const dir = makeDir({ 'photo10.jpg': 'ten', 'photo2.jpg': 'two', 'photo1.jpg': 'one' });
+  try {
+    const files = ['photo10.jpg', 'photo2.jpg', 'photo1.jpg'].map(name => path.join(dir, name));
+    const { code, out } = runCli(['--sort', 'natural', '-t', 'trip-{n:2}{ext}', ...files]);
+    assert.equal(code, 0);
+    assert.deepEqual(listDir(dir), ['trip-01.jpg', 'trip-02.jpg', 'trip-03.jpg']);
+    assert.equal(fs.readFileSync(path.join(dir, 'trip-03.jpg'), 'utf8'), 'ten');
+    assert.match(out.split('\n')[0], /photo1\.jpg -> .*trip-01\.jpg$/);
+  } finally {
+    removeDir(dir);
+  }
+});
+
+test('cli --sort mtime on a missing file is a usage-level error', () => {
+  const { code, err } = runCli(['--sort', 'mtime', '-t', '{n}', '/definitely/not/here.jpg']);
+  assert.equal(code, 2);
+  assert.match(err, /cannot read \/definitely\/not\/here\.jpg to sort it by mtime/);
+});
