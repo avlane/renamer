@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildPlan } from '../lib/plan.js';
+import { PlanError } from '../lib/errors.js';
 
 test('buildPlan replaces every occurrence in the base name', () => {
   const plan = buildPlan(['IMG_001_IMG.jpg'], { find: 'IMG', replacement: 'photo' });
@@ -140,6 +141,24 @@ test('buildPlan {mtime} on a missing file is an error', () => {
     throw Object.assign(new Error('boom'), { code: 'ENOENT' });
   };
   assert.throws(() => buildPlan(['gone.jpg'], { template: '{mtime}' }, { stat }), /cannot read the modification time of gone\.jpg \(ENOENT\)/);
+});
+
+test('buildPlan generated names cannot contain path separators or reserved characters', () => {
+  const plan = buildPlan(['a.txt', 'b.txt'], { find: 'a', replacement: '../x:y' });
+  assert.equal(plan[0].to, '.._x_y.txt');
+  const slash = buildPlan(['dir/a.txt'], { find: 'a', replacement: '/' });
+  assert.equal(slash[0].to, 'dir/_.txt');
+});
+
+test('buildPlan leaves names alone that the tool did not change', () => {
+  const plan = buildPlan(['odd:name.txt', 'b.txt'], { find: 'b', replacement: 'c' });
+  assert.deepEqual(plan.map(step => [step.to, step.changed]), [['odd:name.txt', false], ['c.txt', true]]);
+});
+
+test('buildPlan reserved names and empty results', () => {
+  assert.equal(buildPlan(['x.dat'], { find: 'x', replacement: 'con' })[0].to, '_con.dat');
+  assert.throws(() => buildPlan(['dots...'], { find: 'dots', replacement: '' }), /dots\.\.\.: the new name would be empty/);
+  assert.throws(() => buildPlan(['abc'], { find: 'abc', replacement: '' }), PlanError);
 });
 
 test('buildPlan numbers files in the --sort order and returns the plan in that order', () => {

@@ -343,3 +343,25 @@ test('cli --sort mtime on a missing file is a usage-level error', () => {
   assert.equal(code, 2);
   assert.match(err, /cannot read \/definitely\/not\/here\.jpg to sort it by mtime/);
 });
+
+test('cli keeps a replacement from moving files into other folders', () => {
+  const dir = makeDir({ 'a.txt': 'x', 'sub/keep.txt': 'y' });
+  try {
+    const { code } = runCli(['-f', 'a', '-w', 'sub/', path.join(dir, 'a.txt')]);
+    assert.equal(code, 0);
+    assert.deepEqual(listDir(dir), ['sub/keep.txt', 'sub_.txt']);
+  } finally {
+    removeDir(dir);
+  }
+});
+
+test('cli refuses a name that would come out empty', () => {
+  const dir = makeDir({ '...': 'x' });
+  try {
+    const { code, err } = runCli(['-f', '...', '-w', '', path.join(dir, '...')]);
+    assert.equal(code, 2);
+    assert.match(err, /the new name would be empty/);
+  } finally {
+    removeDir(dir);
+  }
+});
