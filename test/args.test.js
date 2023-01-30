@@ -37,6 +37,11 @@ test('readArgs --sort and --reverse', () => {
   assert.throws(() => readArgs(['--sort', 'random', 'a']), /--sort must be one of name, natural, mtime, size/);
 });
 
+test('readArgs --json', () => {
+  assert.equal(readArgs(['--json', 'a']).json, true);
+  assert.equal(readArgs(['a']).json, false);
+});
+
 test('readArgs --force', () => {
   assert.equal(readArgs(['--force', 'a']).force, true);
   assert.equal(readArgs(['a']).force, false);

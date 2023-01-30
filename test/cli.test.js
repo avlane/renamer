@@ -365,3 +365,49 @@ test('cli refuses a name that would come out empty', () => {
     removeDir(dir);
   }
 });
+
+test('cli --json for a dry run and a real run', () => {
+  const dir = makeDir({ 'a.txt': 'A', 'b.txt': 'B' });
+  const work = makeDir();
+  try {
+    const files = [path.join(dir, 'a.txt'), path.join(dir, 'b.txt')];
+    const dry = JSON.parse(runCli(['--json', '-n', '-f', '.txt', '-w', '.md', ...files], { cwd: work }).out);
+    assert.equal(dry.dryRun, true);
+    assert.deepEqual(dry.steps, files.map(file => ({ from: file, to: file.replace('.txt', '.md') })));
+    assert.deepEqual(dry.problems, []);
+    assert.deepEqual(listDir(dir), ['a.txt', 'b.txt']);
+
+    const real = runCli(['--json', '-f', '.txt', '-w', '.md', ...files], { cwd: work });
+    assert.equal(real.code, 0);
+    assert.equal(JSON.parse(real.out).dryRun, false);
+    assert.deepEqual(listDir(dir), ['a.md', 'b.md']);
+
+    const undone = JSON.parse(runCli(['--json', '--undo'], { cwd: work }).out);
+    assert.equal(undone.steps.length, 2);
+    assert.deepEqual(listDir(dir), ['a.txt', 'b.txt']);
+  } finally {
+    removeDir(dir);
+    removeDir(work);
+  }
+});
+
+test('cli --json reports failed checks as problems', () => {
+  const dir = makeDir({ 'a.txt': 'A', 'b.txt': 'B' });
+  try {
+    const { code, out, err } = runCli(['--json', '-f', 'a', '-w', 'b', path.join(dir, 'a.txt')]);
+    assert.equal(code, 1);
+    assert.equal(err, '');
+    const report = JSON.parse(out);
+    assert.deepEqual(report.steps, []);
+    assert.equal(report.problems.length, 1);
+    assert.match(report.problems[0], /b\.txt already exists/);
+    assert.deepEqual(listDir(dir), ['a.txt', 'b.txt']);
+  } finally {
+    removeDir(dir);
+  }
+});
+
+test('cli --json with nothing to rename', () => {
+  const report = JSON.parse(runCli(['--json', '-f', 'zzz', '-w', 'y', 'a.txt']).out);
+  assert.deepEqual(report, { dryRun: false, steps: [], problems: [] });
+});
