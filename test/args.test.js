@@ -37,6 +37,20 @@ test('readArgs --sort and --reverse', () => {
   assert.throws(() => readArgs(['--sort', 'random', 'a']), /--sort must be one of name, natural, mtime, size/);
 });
 
+test('readArgs presets fill in options and the command line wins', () => {
+  const presets = { photos: { template: '{n:3}{ext}', start: '10', lower: true, include: ['*.jpg'] } };
+  const lookup = name => {
+    if (!presets[name]) throw new UsageError(`no preset ${name}`);
+    return structuredClone(presets[name]);
+  };
+  const plain = readArgs(['--preset', 'photos', 'a.jpg'], { preset: lookup });
+  assert.deepEqual([plain.template, plain.start, plain.caseMode, plain.include], ['{n:3}{ext}', 10, 'lower', ['*.jpg']]);
+  const override = readArgs(['--preset', 'photos', '--start', '1', '--upper', '-t', 'x{n}', 'a.jpg'], { preset: lookup });
+  assert.deepEqual([override.template, override.start, override.caseMode], ['x{n}', 1, 'upper']);
+  assert.throws(() => readArgs(['--preset', 'nope', 'a'], { preset: lookup }), /no preset nope/);
+  assert.throws(() => readArgs(['--preset', 'photos', 'a']), /--preset is not available here/);
+});
+
 test('readArgs --json', () => {
   assert.equal(readArgs(['--json', 'a']).json, true);
   assert.equal(readArgs(['a']).json, false);

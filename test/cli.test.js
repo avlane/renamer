@@ -411,3 +411,33 @@ test('cli --json with nothing to rename', () => {
   const report = JSON.parse(runCli(['--json', '-f', 'zzz', '-w', 'y', 'a.txt']).out);
   assert.deepEqual(report, { dryRun: false, steps: [], problems: [] });
 });
+
+test('cli --preset', () => {
+  const dir = makeDir({ 'IMG 1.JPG': 'one', 'IMG 2.JPG': 'two' });
+  const work = makeDir({ '.renamerrc.json': JSON.stringify({ presets: { photos: { template: 'trip-{n:2}{ext}', sort: 'natural', lower: true } } }) });
+  try {
+    const files = [path.join(dir, 'IMG 2.JPG'), path.join(dir, 'IMG 1.JPG')];
+    const { code, err } = runCli(['--preset', 'photos', ...files], { cwd: work });
+    assert.equal(err, '');
+    assert.equal(code, 0);
+    assert.deepEqual(listDir(dir), ['trip-01.jpg', 'trip-02.jpg']);
+    assert.equal(fs.readFileSync(path.join(dir, 'trip-01.jpg'), 'utf8'), 'one');
+  } finally {
+    removeDir(dir);
+    removeDir(work);
+  }
+});
+
+test('cli --preset problems are usage errors', () => {
+  const work = makeDir({ '.renamerrc.json': JSON.stringify({ presets: { bad: { nope: 1 } } }) });
+  try {
+    const unknown = runCli(['--preset', 'bad', 'a.txt'], { cwd: work });
+    assert.equal(unknown.code, 2);
+    assert.match(unknown.err, /preset "bad": unknown option "nope"/);
+    const missing = runCli(['--preset', 'other', 'a.txt'], { cwd: work });
+    assert.equal(missing.code, 2);
+    assert.match(missing.err, /has no preset called "other" \(it has: bad\)/);
+  } finally {
+    removeDir(work);
+  }
+});
