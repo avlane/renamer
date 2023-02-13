@@ -10,7 +10,8 @@ test('cli renames files', () => {
     const { code, out } = runCli(['-f', 'IMG_', '-w', 'photo_', path.join(dir, 'IMG_1.jpg'), path.join(dir, 'IMG_2.jpg'), path.join(dir, 'notes.txt')]);
     assert.equal(code, 0);
     assert.deepEqual(listDir(dir), ['notes.txt', 'photo_1.jpg', 'photo_2.jpg']);
-    assert.equal(out.trimEnd().split('\n').length, 2);
+    assert.equal(out.trimEnd().split('\n').length, 3);
+    assert.ok(out.endsWith('2 files renamed\n'));
   } finally {
     removeDir(dir);
   }
@@ -22,7 +23,7 @@ test('cli --dry-run changes nothing but says what would happen', () => {
     const { code, out } = runCli(['-n', '-f', 'a', '-w', 'b', path.join(dir, 'a.txt')]);
     assert.equal(code, 0);
     assert.deepEqual(listDir(dir), ['a.txt']);
-    assert.equal(out, `(dry run) ${path.join(dir, 'a.txt')} -> ${path.join(dir, 'b.txt')}\n`);
+    assert.equal(out, `(dry run) ${path.join(dir, 'a.txt')} -> ${path.join(dir, 'b.txt')}\n(dry run) 1 file would be renamed\n`);
   } finally {
     removeDir(dir);
   }
@@ -295,7 +296,7 @@ test('cli --force replaces an existing file, says so, and --undo warns', () => {
     assert.equal(runCli(args, { cwd: work }).code, 1);
     const dry = runCli(['-n', '--force', ...args], { cwd: work });
     assert.equal(dry.code, 0);
-    assert.match(dry.out, /\(replaces an existing file\)\n$/);
+    assert.match(dry.out, /\(replaces an existing file\)\n/);
     assert.deepEqual(listDir(work), []);
 
     assert.equal(runCli(['--force', ...args], { cwd: work }).code, 0);
@@ -439,5 +440,37 @@ test('cli --preset problems are usage errors', () => {
     assert.match(missing.err, /has no preset called "other" \(it has: bad\)/);
   } finally {
     removeDir(work);
+  }
+});
+
+test('cli colours the output on a terminal and not otherwise', () => {
+  const dir = makeDir({ 'a.txt': 'x', 'b.txt': 'y' });
+  try {
+    const plain = runCli(['-n', '-f', 'a', '-w', 'c', path.join(dir, 'a.txt')], { tty: false });
+    assert.ok(!plain.out.includes('\u001b['));
+    const noColour = runCli(['-n', '-f', 'a', '-w', 'c', path.join(dir, 'a.txt')], { tty: true, env: { NO_COLOR: '1' } });
+    assert.ok(!noColour.out.includes('\u001b['));
+    const tty = runCli(['-n', '-f', 'a', '-w', 'c', path.join(dir, 'a.txt')], { tty: true, env: {} });
+    assert.ok(tty.out.includes('\u001b[32m'), tty.out);
+    const forced = runCli(['-n', '--color', '-f', 'a', '-w', 'c', path.join(dir, 'a.txt')], { env: {} });
+    assert.ok(forced.out.includes('\u001b[32m'));
+    const off = runCli(['-n', '--no-color', '-f', 'a', '-w', 'c', path.join(dir, 'a.txt')], { tty: true, env: {} });
+    assert.ok(!off.out.includes('\u001b['));
+    const json = runCli(['-n', '--color', '--json', '-f', 'a', '-w', 'c', path.join(dir, 'a.txt')], { env: {} });
+    assert.ok(!json.out.includes('\u001b['));
+  } finally {
+    removeDir(dir);
+  }
+});
+
+test('cli summary line counts the files', () => {
+  const dir = makeDir({ 'a.txt': '', 'b.txt': '', 'c.md': '' });
+  try {
+    const files = ['a.txt', 'b.txt', 'c.md'].map(name => path.join(dir, name));
+    assert.ok(runCli(['-n', '-f', 'zzz', '-w', 'y', ...files]).out === 'nothing to rename\n');
+    assert.ok(runCli(['-f', '.txt', '-w', '.text', ...files]).out.endsWith('2 files renamed\n'));
+    assert.ok(runCli(['-f', 'c', '-w', 'd', ...files]).out.endsWith('1 file renamed\n'));
+  } finally {
+    removeDir(dir);
   }
 });

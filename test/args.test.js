@@ -100,3 +100,9 @@ test('readArgs --option=value', () => {
   const opts = readArgs(['--find=a', '--with=b', '--template={n}']);
   assert.deepEqual([opts.find, opts.replacement, opts.template], ['a', 'b', '{n}']);
 });
+
+test('readArgs --color and --no-color', () => {
+  assert.deepEqual([readArgs(['--color', 'a']).color, readArgs(['--no-color', 'a']).noColor], [true, true]);
+  assert.deepEqual([readArgs(['a']).color, readArgs(['a']).noColor], [false, false]);
+  assert.throws(() => readArgs(['--color', '--no-color', 'a']), /cannot be used together/);
+});

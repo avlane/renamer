@@ -49,6 +49,7 @@ class Sink extends Writable {
 // Run the command in-process: { code, out, err }.
 export function runCli(args, extra = {}) {
   const stdout = new Sink();
+  if (extra.tty) stdout.isTTY = true;
   const stderr = new Sink();
   const code = run(args, { stdout, stderr, cwd: SCRATCH, ...extra });
   return { code, out: stdout.text, err: stderr.text };
