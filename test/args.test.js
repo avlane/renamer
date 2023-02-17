@@ -30,6 +30,15 @@ test('readArgs --ext, including an empty one', () => {
   assert.equal(readArgs(['a']).ext, undefined);
 });
 
+test('readArgs --max-depth and --hidden', () => {
+  const opts = readArgs(['-R', '--max-depth', '2', '--hidden', 'dir']);
+  assert.deepEqual([opts.maxDepth, opts.hidden], [2, true]);
+  assert.equal(readArgs(['dir']).maxDepth, undefined);
+  assert.equal(readArgs(['--max-depth', '0', 'dir']).maxDepth, 0);
+  assert.throws(() => readArgs(['--max-depth', 'x', 'dir']), /--max-depth needs a whole number/);
+  assert.throws(() => readArgs(['--max-depth=-1', 'dir']), /--max-depth cannot be negative/);
+});
+
 test('readArgs --sort and --reverse', () => {
   assert.equal(readArgs(['--sort', 'natural', 'a']).sort, 'natural');
   assert.equal(readArgs(['a']).sort, undefined);

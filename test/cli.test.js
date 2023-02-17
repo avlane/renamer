@@ -474,3 +474,15 @@ test('cli summary line counts the files', () => {
     removeDir(dir);
   }
 });
+
+test('cli -R leaves hidden files alone and honours --max-depth', () => {
+  const dir = makeDir({ 'a.txt': '', '.b.txt': '', 'sub/c.txt': '', 'sub/deep/d.txt': '' });
+  try {
+    assert.equal(runCli(['-R', '--max-depth', '1', '-f', '.txt', '-w', '.md', dir]).code, 0);
+    assert.deepEqual(listDir(dir), ['.b.txt', 'a.md', 'sub/c.md', 'sub/deep/d.txt']);
+    assert.equal(runCli(['-R', '--hidden', '-f', '.txt', '-w', '.md', dir]).code, 0);
+    assert.deepEqual(listDir(dir), ['.b.md', 'a.md', 'sub/c.md', 'sub/deep/d.md']);
+  } finally {
+    removeDir(dir);
+  }
+});
