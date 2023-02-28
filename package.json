@@ -1,6 +1,6 @@
 {
   "name": "renamer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Bulk file renamer",
   "type": "module",
   "bin": {
